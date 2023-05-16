@@ -45,16 +45,17 @@ typedef struct {
 	char * name;  // self-explanatory
 } obj_plant;
 
-obj_plant obj_appletree = { 28, };
+// obj_plant obj_appletree = { 84, { 28, 56, 84 }, 18500, "Apple Tree" };
 
 typedef struct {
 	char * name;
 	char * description;
 	char * summary;
+	int img;
 	char * type;
 } Item;
 
-Item log = { "Log", "It's a log; what were you expecting?", "Basic crafting material.", "material" };
+// Item log = { "Log", "It's a log; what were you expecting?", "Basic crafting material.", 0, "material" };
 
 void LoadTextures(void);
 void UnloadTextures(void);
@@ -104,6 +105,7 @@ int main(void) {
 			}
 			// DrawTextureEx(james_images, (Vector2){ 0, 0 }, 0.0f, 1.0f, RAYWHITE);
 			DrawTexture(hotbar, 1.0f, 419.0f, RAYWHITE);
+			DrawTexturePro(menu_images, (Rectangle){ 0.0f + 400.0f * menu_selection, 0.0f, 400.0f, 225.0f }, (Rectangle){ 0.0f, 0.0f, 800.0f, 450.0f }, (Vector2){ 0.0f, 0.0f }, 0.0f, RAYWHITE);
 			DrawFPS(10, 10);
 			// DrawTextEx(font1, TextSubtext(displaymsg, 0, text_frames/10), (Vector2){ 25.0f, 100.0f }, 16, 0, RAYWHITE);
 			//if (menu == "nexxus") {
