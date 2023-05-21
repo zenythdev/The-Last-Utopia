@@ -4,21 +4,14 @@
 #include "raylib.h"
 #include "tiles.h"
 
-// define miscellaneous things vital to the game's functionality
-#define inventory_size 16
-#define menu_selection 0
-#define menu "nexxus"
-#define fade "in"
-#define fade_frame 0
-#define ambient_colour RAYWHITE
-
-// screen settings
 const int screenWidth = 800;
 const int screenHeight = 450;
+typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, MENU } GameScreen;
+typedef enum Movements { STILL = 0, WALKING, ROLLING, RUNNING } Movements;
 
 // ensure that all resources are pre-defined so that gcc doesn't have a mental breakdown
-Texture tile_grass; // BAD! Rendering each tile one by one will hurt raylib's performance!
-Texture tile_water; // TODO: Make a texture atlas of each tile image.
+Texture tile_grass;
+Texture tile_water;
 Texture tile_img;
 Texture nexxus_games;
 Texture menu_images;
@@ -30,46 +23,44 @@ typedef struct {
 	int x;
 	int y;
 	float speed;
+	float velocity[2];
 	int facing;
 	int anim;
 	int sprite;
-	bool running;
-	int stats[10]; 		 // hp, max hp, hunger, max hunger, thirst, max thirst, stamina, max stamina, action points, max action points
-	int combat_stats[8]; // melee damage, melee defense, ranged damage, ranged defense, magic damage, magic defense, explosive damage, explosive defense
+	Movements moving;
 } Player;
 
 typedef struct {
-	int age; 	  // in-game days
-	int * stages; // points at which the plant will age
-	int lifespan; // point at which it will die if its age reaches this
-	char * name;  // self-explanatory
+	int age;
+	int lifespan;
+	char * name;
 } obj_plant;
 
-// obj_plant obj_appletree = { 84, { 28, 56, 84 }, 18500, "Apple Tree" };
+obj_plant obj_appletree = { 84, 18500, "Apple Tree" };
 
-typedef struct {
+struct Item {
 	char * name;
 	char * description;
 	char * summary;
-	int img;
+	int id;
 	char * type;
-} Item;
+};
 
-// Item log = { "Log", "It's a log; what were you expecting?", "Basic crafting material.", 0, "material" };
+struct Item item_log = { "Log", "It's a log; what were you expecting?", "Basic crafting material.", 0, "material" };
+
+struct Item inventory[16];
 
 void LoadTextures(void);
 void UnloadTextures(void);
 void UpdateDrawFrame(void);
-void AnimatePlayer(Player player);
-
-char * displaymsg = "Log";
-char * displaymsg2 = "It's a log; what were you expecting?";
-char * displaymsg3 = "Basic crafting material.";
+Player AnimatePlayer(Player player);
 
 int main(void) {
 
+	GameScreen currentScreen = GAMEPLAY;
+
 	Map map = LoadMap("data/maps/map1.txt");
-	Player player = { 0, 0, 0.5, 2, 0, 0, false, { 90, 90, 72, 72, 72, 72, 75, 75, 10, 10 }, {1.5, 1.25, 1.0, 0.75, 0.75, 1.0}};
+	Player player = { 0, 0, 1, 1, 0, 0, STILL };
 
 	InitWindow(screenWidth, screenHeight, "The Last Utopia");
 	InitAudioDevice();
@@ -77,17 +68,27 @@ int main(void) {
 
 	LoadTextures();
 
-	Music boomtown = LoadMusicStream("data/music/boomtown.ogg");
-	Music song = boomtown;
-	PlayMusicStream(song);
-
-	Font font1 = LoadFont("data/terminal.ttf");
-
-	int text_frames = 0;
-
 	while (!WindowShouldClose()) {
-		text_frames++;
-		UpdateMusicStream(song);
+		switch (currentScreen) {
+			case GAMEPLAY:
+				if (IsKeyDown(KEY_W)) { player.facing = 0; player.velocity[1] -= 0.2; }
+				if (IsKeyDown(KEY_A)) { player.facing = 1; player.velocity[0] -= 0.2; }
+				if (IsKeyDown(KEY_S)) { player.facing = 2; player.velocity[1] += 0.2; }
+				if (IsKeyDown(KEY_D)) { player.facing = 3; player.velocity[0] += 0.2; }
+				if (player.velocity[0] > 1.5) player.velocity[0] = 1.5;
+				if (player.velocity[0] < -1.5) player.velocity[0] = -1.5;
+				if (player.velocity[1] > 1.5) player.velocity[1] = 1.5;
+				if (player.velocity[1] < -1.5) player.velocity[1] = -1.5;
+				player.x += player.velocity[0];
+				player.y += player.velocity[1];
+				if (player.velocity[0] <= 0) player.velocity[0] += 0.1;
+				if (player.velocity[0] >= 0) player.velocity[0] -= 0.1;
+				if (player.velocity[1] <= 0) player.velocity[1] += 0.1;
+				if (player.velocity[1] >= 0) player.velocity[1] -= 0.1;
+				break;
+			default:
+				break;
+		}
 		BeginDrawing();
 			ClearBackground(RAYWHITE);
 			for (int i = 0; i < map.rows; i++) {
@@ -100,23 +101,13 @@ int main(void) {
 							tile_img = tile_grass;
 							break;
 					}
-					DrawTextureEx(tile_img, (Vector2){ j*30, i*30 }, 0.0f, 2.0f, RAYWHITE);
+					DrawTextureEx(tile_img, (Vector2){ j*30 - player.x, i*30 - player.y }, 0.0f, 2.0f, RAYWHITE);
 				}
 			}
-			// DrawTextureEx(james_images, (Vector2){ 0, 0 }, 0.0f, 1.0f, RAYWHITE);
+			player = AnimatePlayer(player);
+			DrawTexturePro(james_images, (Rectangle){37 * player.sprite, 54 * player.facing, 37, 54 }, (Rectangle){ 383, 170, 37, 54 }, (Vector2){ 0, 0 }, 0.0f, RAYWHITE);
 			DrawTexture(hotbar, 1.0f, 419.0f, RAYWHITE);
-			DrawTexturePro(menu_images, (Rectangle){ 0.0f + 400.0f * menu_selection, 0.0f, 400.0f, 225.0f }, (Rectangle){ 0.0f, 0.0f, 800.0f, 450.0f }, (Vector2){ 0.0f, 0.0f }, 0.0f, RAYWHITE);
 			DrawFPS(10, 10);
-			// DrawTextEx(font1, TextSubtext(displaymsg, 0, text_frames/10), (Vector2){ 25.0f, 100.0f }, 16, 0, RAYWHITE);
-			//if (menu == "nexxus") {
-			//	DrawTexture(nexxus_games, 0, 0, (Color){ menu_fade, menu_fade, menu_fade, 255});
-			//	if (menu_fade < 255) {
-			//		if (fade == "in") menu_fade += 1;
-			//	} else fade = "out";
-			//	if (menu_fade > 0) { 
-			//		if (fade == "out") menu_fade -= 1;
-			//	} else menu = "game";
-			// }
 		EndDrawing();
 	}
 	UnloadTextures();
@@ -138,13 +129,14 @@ void UnloadTextures(void) {
 	UnloadTexture(tile_img);
 	UnloadTexture(james_images);
 	UnloadTexture(menu_images);
+	UnloadTexture(hotbar);
 }
 
 void UpdateDrawFrame(void) {
 	
 }
 
-void AnimatePlayer(Player player) {
+Player AnimatePlayer(Player player) {
 	player.anim++;
 	if (player.anim > 7) {
 		player.anim = 0;
@@ -153,4 +145,5 @@ void AnimatePlayer(Player player) {
 			player.sprite = 0;
 		}
 	}
+	return player;
 }
