@@ -7,7 +7,7 @@
 const int screenWidth = 800;
 const int screenHeight = 450;
 typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, MENU } GameScreen;
-typedef enum Movements { STILL = 0, WALKING, ROLLING, RUNNING } Movements;
+typedef enum Movements { STILL, WALKING, ROLLING, RUNNING } Movements;
 
 // ensure that all resources are pre-defined so that gcc doesn't have a mental breakdown
 Texture tile_grass;
@@ -60,7 +60,7 @@ int main(void) {
 	GameScreen currentScreen = GAMEPLAY;
 
 	Map map = LoadMap("data/maps/map1.txt");
-	Player player = { 0, 0, 1, 1, 0, 0, STILL };
+	Player player = { 0, 0, 2.0f, {0.0f, 0.0f }, 2, 0, 0, STILL };
 
 	InitWindow(screenWidth, screenHeight, "The Last Utopia");
 	InitAudioDevice();
@@ -71,20 +71,21 @@ int main(void) {
 	while (!WindowShouldClose()) {
 		switch (currentScreen) {
 			case GAMEPLAY:
-				if (IsKeyDown(KEY_W)) { player.facing = 0; player.velocity[1] -= 0.2; }
-				if (IsKeyDown(KEY_A)) { player.facing = 1; player.velocity[0] -= 0.2; }
-				if (IsKeyDown(KEY_S)) { player.facing = 2; player.velocity[1] += 0.2; }
-				if (IsKeyDown(KEY_D)) { player.facing = 3; player.velocity[0] += 0.2; }
-				if (player.velocity[0] > 1.5) player.velocity[0] = 1.5;
-				if (player.velocity[0] < -1.5) player.velocity[0] = -1.5;
-				if (player.velocity[1] > 1.5) player.velocity[1] = 1.5;
-				if (player.velocity[1] < -1.5) player.velocity[1] = -1.5;
+				player.moving = STILL;
+				if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) { player.moving = WALKING; player.facing = 0; player.velocity[1] -= player.speed / 10; }
+				if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) { player.moving = WALKING; player.facing = 1; player.velocity[0] -= player.speed / 10; }
+				if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) { player.moving = WALKING; player.facing = 2; player.velocity[1] += player.speed / 10; }
+				if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) { player.moving = WALKING; player.facing = 3; player.velocity[0] += player.speed / 10; }
+				if (player.velocity[0] >= player.speed) player.velocity[0] = player.speed;
+				if (player.velocity[0] <= -player.speed) player.velocity[0] = -player.speed;
+				if (player.velocity[1] >= player.speed) player.velocity[1] = player.speed;
+				if (player.velocity[1] <= -player.speed) player.velocity[1] = -player.speed;
+				if (player.velocity[0] <= 0) player.velocity[0] += player.speed / 20;
+				if (player.velocity[0] >= 0) player.velocity[0] -= player.speed / 20;
+				if (player.velocity[1] <= 0) player.velocity[1] += player.speed / 20;
+				if (player.velocity[1] >= 0) player.velocity[1] -= player.speed / 20;
 				player.x += player.velocity[0];
 				player.y += player.velocity[1];
-				if (player.velocity[0] <= 0) player.velocity[0] += 0.1;
-				if (player.velocity[0] >= 0) player.velocity[0] -= 0.1;
-				if (player.velocity[1] <= 0) player.velocity[1] += 0.1;
-				if (player.velocity[1] >= 0) player.velocity[1] -= 0.1;
 				break;
 			default:
 				break;
@@ -137,13 +138,18 @@ void UpdateDrawFrame(void) {
 }
 
 Player AnimatePlayer(Player player) {
-	player.anim++;
-	if (player.anim > 7) {
-		player.anim = 0;
-		player.sprite++;
-		if (player.sprite >= 8) {
-			player.sprite = 0;
+	if (player.moving != STILL) {
+		player.anim++;
+		if (player.anim > 7) {
+			player.anim = 0;
+			player.sprite++;
+			if (player.sprite >= 8) {
+				player.sprite = 0;
+			}
 		}
+	} else {
+		player.anim = 0;
+		player.sprite = 0;
 	}
 	return player;
 }
