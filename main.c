@@ -9,6 +9,7 @@ const int screenWidth = 800;
 const int screenHeight = 450;
 typedef enum GameScreen { LOGO = 0, TITLE, GAMEPLAY, MENU } GameScreen;
 typedef enum Movements { STILL, WALKING, ROLLING, RUNNING } Movements;
+typedef enum Directions { UP, DOWN, LEFT, RIGHT } Directions;
 
 // ensure that all resources are pre-defined so that gcc doesn't have a mental breakdown
 Texture tile_grass;
@@ -75,7 +76,7 @@ void UnloadTextures(void);
 void UpdateDrawFrame(void);
 Player AnimatePlayer(Player player);
 struct obj_enemy AnimateEnemy(struct obj_enemy enemy);
-Player CollideEntityWithTile(const Rectangle entity, const Rectangle tile, Player player);
+bool * CollideEntityWithTile(const Rectangle entity, const Rectangle tile, bool collisions[4]);
 
 int main(void) {
 
@@ -99,6 +100,7 @@ int main(void) {
 	while (!WindowShouldClose()) {
 		switch (currentScreen) {
 			case GAMEPLAY:
+				Rectangle tile_hitboxes[map.rows][map.cols];
 				player.moving = STILL;
 				if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) { player.moving = WALKING; player.facing = 0; player.velocity[1] -= player.speed / 10; }
 				if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) { player.moving = WALKING; player.facing = 1; player.velocity[0] -= player.speed / 10; }
@@ -108,16 +110,26 @@ int main(void) {
 				if (player.velocity[0] <= -player.speed) player.velocity[0] = -player.speed;
 				if (player.velocity[1] >= player.speed) player.velocity[1] = player.speed;
 				if (player.velocity[1] <= -player.speed) player.velocity[1] = -player.speed;
-				if (player.velocity[0] <= 0) player.velocity[0] += 0.1;
-				else if (player.velocity[0] >= 0) player.velocity[0] -= 0.1;
-				if (player.velocity[1] <= 0) player.velocity[1] += 0.1;
-				else if (player.velocity[1] >= 0) player.velocity[1] -= 0.1;
-				Rectangle tile_hitboxes[map.rows][map.cols];
+				if (player.velocity[0] <= 0) player.velocity[0] += player.speed / 20;
+				if (player.velocity[0] >= 0) player.velocity[0] -= player.speed / 20;
+				if (player.velocity[1] <= 0) player.velocity[1] += player.speed / 20;
+				if (player.velocity[1] >= 0) player.velocity[1] -= player.speed / 20;
 				for (int i = 0; i < map.rows; i++) {
 					for (int j = 0; j < map.cols; j++) {
-						if (map.data[i][j] == 0) tile_hitboxes[i][j] = (Rectangle){ j*30-player.x, i*30-player.x, 30, 30 };
-						else tile_hitboxes[i][j] = (Rectangle){ 0-player.x, 0-player.y, 0, 0 };
-						if (CheckCollisionRecs(player.hitbox, tile_hitboxes[i][j]) == true) player = CollideEntityWithTile(player.hitbox, tile_hitboxes[i][j], player);
+						if (map.data[i][j] == 0) tile_hitboxes[i][j] = (Rectangle){ j*30-player.x, i*30-player.y, 30, 30};
+						if (CheckCollisionRecs(player.hitbox, tile_hitboxes[i][j]) == true) {
+							bool collisions2[4];
+							bool collisions[4] = CollideEntityWithTile(player.hitbox, tile_hitboxes[i][j], collisions2);
+							if (collisions[UP] == true) player.y += player.speed;
+							if (collisions[LEFT] == true) player.x += player.speed;
+							if (collisions[DOWN] == true) player.y -= player.speed;
+							if (collisions[RIGHT] == true) player.x -= player.speed;
+						for (int k = 0; k < 20; k++) {
+							if (CheckCollisionRecs(enemies[k].hitbox, tile_hitboxes[i][j]) == true) {
+								bool collisions[4];
+							}
+						}
+						}
 					}
 				}
 				player.x += player.velocity[0];
@@ -143,7 +155,7 @@ int main(void) {
 							break;
 					}
 					DrawTextureEx(tile_img, (Vector2){ j*30 - player.x, i*30 - player.y }, 0.0f, 2.0f, RAYWHITE);
-					DrawRectangleLinesEx(tile_hitboxes[i][j], 1.0f, GREEN);
+					DrawRectangleLinesEx(tile_hitboxes[i][j], 1.0f, BLUE);
 				}
 			}
 			player = AnimatePlayer(player);
@@ -214,22 +226,14 @@ struct obj_enemy AnimateEnemy(struct obj_enemy enemy) {
 	return enemy;
 }
 
-
-Player CollideEntityWithTile(const Rectangle entity, const Rectangle tile, Player player) {
-	if (entity.y >= tile.y + tile.height) { // moving up, top-left of entity to bottom-left of tile
-		if (entity.x + entity.width >= tile.x + tile.width) { // top-right of entity to bottom-right of tile
-			player.velocity[1] = -player.velocity[1];
-		}
-	}
-	if (entity.y + entity.height >= tile.y) {
-		if (entity.x + entity.width <= tile.x + tile.width) {
-			player.velocity[1] = -player.velocity[1];
-		}
-	}
-	if (entity.x + entity.width >= tile.x) { // moving right, top-right of entity to top-left of tile
-		if (entity.y + entity.height <= tile.y) { // bottom-right of entity to top-left of tile
-			player.velocity[0] = -player.velocity[0];
-		}
-	}
-	return player;
+bool * CollideEntityWithTile(const Rectangle entity, const Rectangle tile, bool collisions[4]) {
+	Rectangle up = { entity.x, entity.y, entity.width, 2 };
+	Rectangle left = { entity.x, entity.y, 2, entity.height };
+	Rectangle down = { entity.x, entity.y + entity.height, entity.width, 2 };
+	Rectangle right = { entity.x + entity.width, entity.y, 2, entity.height };
+	if (CheckCollisionRecs(up, tile) == true) collisions[UP] = true;
+	if (CheckCollisionRecs(down, tile) == true) collisions[DOWN] = true;
+	if (CheckCollisionRecs(left, tile) == true) collisions[LEFT] = true;
+	if (CheckCollisionRecs(right, tile) == true) collisions[RIGHT] = true;
+	return collisions;
 }
