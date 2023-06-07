@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <time.h>
 #include "raylib.h"
-#include "tiles.h"
 
 const int screenWidth = 800;
 const int screenHeight = 450;
@@ -47,8 +47,6 @@ struct obj_enemy {
 	Rectangle hitbox;
 };
 
-struct obj_enemy obj_tattlesnake = { 0.0f, 0.0f, 45, 45, 0.4, 0, 0, 0, (Rectangle){ 0.0f, 0.0f, 0.0f, 0.0f } };
-
 struct obj_enemy enemies[20];
 
 typedef struct {
@@ -67,6 +65,12 @@ struct Item {
 	char * type;
 };
 
+typedef struct {
+	int ** data;
+	int rows;
+	int cols;
+} Map;
+
 struct Item item_log = { "Log", "It's a log; what were you expecting?", "Basic crafting material.", 0, "material" };
 
 struct Item inventory[16];
@@ -76,14 +80,16 @@ void UnloadTextures(void);
 void UpdateDrawFrame(void);
 Player AnimatePlayer(Player player);
 struct obj_enemy AnimateEnemy(struct obj_enemy enemy);
-bool * CollideEntityWithTile(const Rectangle entity, const Rectangle tile, bool collisions[4]);
+Player CollidePlayerWithTile(const Rectangle entity, const Rectangle tile, Player player);
+struct obj_enemy CollideEnemyWithTile(const Rectangle entity, const Rectangle tile, struct obj_enemy enemy);
+Map LoadMap(const char* filename);
 
 int main(void) {
 
 	GameScreen currentScreen = GAMEPLAY;
 
 	for (int i = 0; i < 20; i++) {
-		enemies[i] = obj_tattlesnake;
+		enemies[i] = (struct obj_enemy) { 60.0f + 15*i, 60.0f + 15*i, 45, 45, 0.4, 0, 0, 0, (Rectangle){ 0.0f, 0.0f, 0.0f, 0.0f } };
 	}
 
 	Map map = LoadMap("data/maps/map1.txt");
@@ -118,15 +124,11 @@ int main(void) {
 					for (int j = 0; j < map.cols; j++) {
 						if (map.data[i][j] == 0) tile_hitboxes[i][j] = (Rectangle){ j*30-player.x, i*30-player.y, 30, 30};
 						if (CheckCollisionRecs(player.hitbox, tile_hitboxes[i][j]) == true) {
-							bool collisions2[4];
-							bool collisions[4] = CollideEntityWithTile(player.hitbox, tile_hitboxes[i][j], collisions2);
-							if (collisions[UP] == true) player.y += player.speed;
-							if (collisions[LEFT] == true) player.x += player.speed;
-							if (collisions[DOWN] == true) player.y -= player.speed;
-							if (collisions[RIGHT] == true) player.x -= player.speed;
+							bool collisions[4];
+							player = CollidePlayerWithTile(player.hitbox, tile_hitboxes[i][j], player);
 						for (int k = 0; k < 20; k++) {
 							if (CheckCollisionRecs(enemies[k].hitbox, tile_hitboxes[i][j]) == true) {
-								bool collisions[4];
+								enemies[k] = CollideEnemyWithTile(enemies[k].hitbox, tile_hitboxes[i][j], enemies[k]);
 							}
 						}
 						}
@@ -134,12 +136,6 @@ int main(void) {
 				}
 				player.x += player.velocity[0];
 				player.y += player.velocity[1];
-				for (int i = 0; i < 20; i++) {
-					if (enemies[i].facing == 1) enemies[i].x += enemies[i].speed;
-					if (enemies[i].facing == 0) enemies[i].x -= enemies[i].speed;
-					enemies[i].hitbox = (Rectangle){ enemies[i].x + 4 - player.x, enemies[i].y + 22 - player.y, 24, 8 };
-					if (CheckCollisionRecs(player.hitbox, enemies[i].hitbox) == true) CloseWindow();
-				}
 				break;
 		}
 		BeginDrawing();
@@ -197,6 +193,29 @@ void UpdateDrawFrame(void) {
 	
 }
 
+Map LoadMap (const char * filename) {
+	FILE *file = fopen(filename, "r");
+
+	if (file == NULL) {
+		fprintf(stderr, "Could not find map '%s'; does it exist?", filename);
+		exit(EXIT_FAILURE);
+	}
+
+	int rows, cols;
+	fscanf(file, "%d %d", &rows, &cols);
+
+	int ** array = (int**)malloc(rows * sizeof(int*));
+	for (int i = 0; i < rows; i++) {
+		array[i] = (int*)malloc(cols * sizeof(int));
+		for (int j = 0; j < cols; j++) {
+			fscanf(file, "%d", &array[i][j]);
+		}
+	}
+	fclose(file);
+	Map result = { array, rows, cols };
+	return result;
+}
+
 Player AnimatePlayer(Player player) {
 	if (player.moving != STILL) {
 		player.anim++;
@@ -226,14 +245,26 @@ struct obj_enemy AnimateEnemy(struct obj_enemy enemy) {
 	return enemy;
 }
 
-bool * CollideEntityWithTile(const Rectangle entity, const Rectangle tile, bool collisions[4]) {
+Player CollidePlayerWithTile(const Rectangle entity, const Rectangle tile, Player player) {
 	Rectangle up = { entity.x, entity.y, entity.width, 2 };
 	Rectangle left = { entity.x, entity.y, 2, entity.height };
 	Rectangle down = { entity.x, entity.y + entity.height, entity.width, 2 };
 	Rectangle right = { entity.x + entity.width, entity.y, 2, entity.height };
-	if (CheckCollisionRecs(up, tile) == true) collisions[UP] = true;
-	if (CheckCollisionRecs(down, tile) == true) collisions[DOWN] = true;
-	if (CheckCollisionRecs(left, tile) == true) collisions[LEFT] = true;
-	if (CheckCollisionRecs(right, tile) == true) collisions[RIGHT] = true;
-	return collisions;
+	if (CheckCollisionRecs(up, tile) == true) player.y += player.speed;
+	if (CheckCollisionRecs(down, tile) == true) player.y -= player.speed;
+	if (CheckCollisionRecs(left, tile) == true) player.x += player.speed;
+	if (CheckCollisionRecs(right, tile) == true) player.x -= player.speed;
+	return player;
+}
+
+struct obj_enemy CollideEnemyWithTile(const Rectangle entity, const Rectangle tile, struct obj_enemy enemy) {
+	Rectangle up = { entity.x, entity.y, entity.width, 2 };
+	Rectangle left = { entity.x, entity.y, 2, entity.height };
+	Rectangle down = { entity.x, entity.y + entity.height, entity.width, 2 };
+	Rectangle right = { entity.x + entity.width, entity.y, 2, entity.height };
+	if (CheckCollisionRecs(up, tile) == true) enemy.y += enemy.speed;
+	if (CheckCollisionRecs(down, tile) == true) enemy.y -= enemy.speed;
+	if (CheckCollisionRecs(left, tile) == true) enemy.facing = 1;
+	else if (CheckCollisionRecs(right, tile) == true) enemy.facing = 0;
+	return enemy;
 }
