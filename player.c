@@ -33,9 +33,25 @@ Player MovePlayer(Player player) {
 	}
 
 	// Reset velocity if no directional keys are being held down
-	if (!IsKeyDown(KEY_W) && !IsKeyDown(KEY_A) && !IsKeyDown(KEY_S) && !IsKeyDown(KEY_D)) {
+	if (!IsKeyDown(KEY_A) && !IsKeyDown(KEY_D)) {
 		player.velocity.x = 0;
+	}
+	if (!IsKeyDown(KEY_W) && !IsKeyDown(KEY_S)) {
 		player.velocity.y = 0;
+	}
+
+	// Set a maximum player momentum
+	if (player.velocity.x <= -2) {
+		player.velocity.x = -2;
+	}
+	if (player.velocity.x >= 2) {
+		player.velocity.x = 2;
+	}
+	if (player.velocity.y <= -2) {
+		player.velocity.y = -2;
+	}
+	if (player.velocity.y >= 2) {
+		player.velocity.y = 2;
 	}
 
 	// Move player
