@@ -17,6 +17,7 @@ int main(void) {
 
 	while (!WindowShouldClose()) {
 		// Get input
+		player = MovePlayer(player);
 		player = AnimatePlayer(player);
 		if (IsKeyPressed(KEY_SPACE)) {
 			PlaySound(james_voice);
