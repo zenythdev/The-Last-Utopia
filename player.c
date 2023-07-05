@@ -63,17 +63,17 @@ Player MovePlayer(Player player) {
 
 Player AnimatePlayer(Player player) {
 	// Check for keyboard input
-	if (IsKeyDown(KEY_W)) {
-		player.facing = UP;
-	}
 	if (IsKeyDown(KEY_A)) {
 		player.facing = LEFT;
 	}
-	if (IsKeyDown(KEY_S)) {
-		player.facing = DOWN;
-	}
 	if (IsKeyDown(KEY_D)) {
 		player.facing = RIGHT;
+	}
+	if (IsKeyDown(KEY_W)) {
+		player.facing = UP;
+	}
+	if (IsKeyDown(KEY_S)) {
+		player.facing = DOWN;
 	}
 	if (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D)) {
 		player.frame++;
