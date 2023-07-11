@@ -7,4 +7,4 @@ typedef struct {
 } Map;
 
 Map LoadMap(const char* filename);
-void DrawMap(Map map, Texture tile, Player player);
+void DrawMap(Map map, Texture* tiles, Player player);

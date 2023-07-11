@@ -33,12 +33,10 @@ Map LoadMap(const char* filename) {
 	return result;
 }
 
-void DrawMap(Map map, Texture tile, Player player) {
+void DrawMap(Map map, Texture* tiles, Player player) {
 	for (int i = 0; i < map.rows; i++) {
 		for (int j = 0; j < map.cols; j++) {
-			if (map.data[i][j] == 0) {
-				DrawTextureEx(tile, (Vector2){ j * 30 - player.position.x, i * 30 - player.position.y }, 0.0f, 2.0f, RAYWHITE);
-			}
+			DrawTextureEx(tiles[map.data[i][j]], (Vector2){ j * 30 - player.position.x, i * 30 - player.position.y }, 0.0f, 2.0f, RAYWHITE);
 		}
 	}
 }
