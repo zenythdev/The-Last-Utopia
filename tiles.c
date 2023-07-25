@@ -33,6 +33,36 @@ Map LoadMap(const char* filename) {
 	return result;
 }
 
+Player CollidePlayerWithTile(Map map, Player player) {
+	Rectangle up = (Rectangle){ GetScreenWidth() / 2 - 12.5, GetScreenHeight() / 2 + 2, 25, 2 };
+	Rectangle left = (Rectangle){ GetScreenWidth() / 2 - 13.5, GetScreenHeight() / 2 + 2, 2, 25 };
+	Rectangle down = (Rectangle){ GetScreenWidth() / 2 - 12.5, GetScreenHeight() / 2 + 25, 25, 2 };
+	Rectangle right = (Rectangle){ GetScreenWidth() / 2 + 12.5, GetScreenHeight() / 2 + 2, 2, 25 };
+	Rectangle tile_rect;
+	for (int i = 0; i < map.rows; i++) {
+		for (int j = 0; j < map.cols; j++) {
+			if (map.data[i][j] == 0) tile_rect = (Rectangle){ j * 30 - player.position.x, i * 30 - player.position.y, 30, 30 };
+			if (CheckCollisionRecs(up, tile_rect) == true) {
+				player.position.y -= player.velocity.y;
+				player.velocity.y = 0;
+			}
+			if (CheckCollisionRecs(left, tile_rect) == true) {
+				player.position.x -= player.velocity.x;
+				player.velocity.x = 0;
+			}
+			if (CheckCollisionRecs(down, tile_rect) == true) {
+				player.position.y -= player.velocity.y;
+				player.velocity.y = 0;
+			}
+			if (CheckCollisionRecs(right, tile_rect) == true) {
+				player.position.x -= player.velocity.x;
+				player.velocity.x = 0;
+			}
+		}
+	}
+	return player;
+}
+
 void DrawMap(Map map, Texture* tiles, Player player) {
 	for (int i = 0; i < map.rows; i++) {
 		for (int j = 0; j < map.cols; j++) {
