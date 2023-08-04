@@ -1,6 +1,7 @@
 #include <math.h>
 #include "raylib.h"
 #include "player.h"
+#include "enemies.h"
 #include "tiles.h"
 #include "items.h"
 
@@ -45,6 +46,7 @@ int main(void) {
 	int melee_frame = 0;
 	float melee_rotation;
 	bool swinging_weapon = false;
+	Rectangle sword_hitbox;
 
 	while (!WindowShouldClose()) {
 		rotation = atan2f(GetMouseY() - GetScreenHeight() / 2, GetMouseX() - GetScreenWidth() / 2) * 180 / PI + 45;
@@ -99,6 +101,8 @@ int main(void) {
 			if (swinging_weapon == true) {
 				DrawTexturePro(slash, (Rectangle){ 0, 0, 30, 30 }, (Rectangle){ GetScreenWidth() / 2, GetScreenHeight() / 2, 60, 60 }, (Vector2){ 0.0f, 60.0f }, melee_rotation + melee_frame, RAYWHITE);
 				DrawTexturePro(bluesteel_sabre, (Rectangle){ 0, 0, 30, 30 }, (Rectangle){ GetScreenWidth() / 2, GetScreenHeight() / 2, 60, 60 }, (Vector2){ 0.0f, 60.0f }, melee_rotation + melee_frame, RAYWHITE);
+				sword_hitbox = (Rectangle){ GetScreenWidth() / 2, GetScreenHeight() / 2, 60, 60 };
+				DrawRectangleLinesEx(sword_hitbox, 1.0f, )
 			}
 			DrawTexture(hotbar, 1.0f, GetScreenHeight() - 31, RAYWHITE);
 			DrawItems(inventory, item_images);
